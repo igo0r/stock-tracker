@@ -1,0 +1,22 @@
+{
+  "bin": {
+    "stocks-script": "stocks-script"
+  },
+  "name": "stock-tracker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "stocks.js",
+  "scripts": {
+    "b": "npx browserify --outfile bundles.js --standalone stocks-script stocks.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {},
+  "dependencies": {
+    "axios": "^0.21.1",
+    "file-system": "^2.2.2",
+    "watch": "^1.0.2",
+    "yahoo-stock-prices": "^1.1.0"
+  }
+}
