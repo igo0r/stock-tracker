@@ -7,8 +7,28 @@
     ]
 );*/
 
-let stocks = getStocksFromStorage();
-setStocks(stocks);
+updateStocks();
+
+function stopUpdates() {
+    if (window.updates) {
+        clearInterval(window.updates);
+    }
+    document.getElementById("stop-update").classList.add('d-none');
+    document.getElementById("start-update").classList.remove('d-none');
+}
+
+function startUpdates() {
+    window.updates = setInterval(function () {
+        updateStocks();
+    }, 10000);
+    document.getElementById("start-update").classList.add('d-none');
+    document.getElementById("stop-update").classList.remove('d-none');
+}
+
+function updateStocks() {
+    let stocks = getStocksFromStorage();
+    setStocks(stocks);
+}
 
 function getStocksFromStorage() {
     let str = localStorage.getItem('stocks');
@@ -17,7 +37,6 @@ function getStocksFromStorage() {
 
 function setStocks(stocks) {
     localStorage.setItem('stocks', JSON.stringify(stocks));
-    console.log(stocks);
     drawStocks(stocks);
 }
 
@@ -25,8 +44,12 @@ async function drawStocks(stocks) {
     let currentStocksPrice = await getLocalStocksPrice(stocks);
     let rows = '';
     let profitSum = 0;
+    let highProfit = false;
     for (let i = 0; i < stocks.length; i++) {
         let profit = (stocks[i].count * currentStocksPrice[stocks[i].name] - stocks[i].count * stocks[i].price - 2);
+        if (profit > 2) {
+            highProfit = true;
+        }
         profitSum += profit;
         rows += ` 
     <tr class="${profit > 0 ? 'table-success' : ''}">
@@ -45,17 +68,20 @@ async function drawStocks(stocks) {
       <th></th>
     </tr>`;
 
-    if(window.stockTable) {
+    if (window.stockTable) {
         window.stockTable.destroy();
     }
     document.getElementById('body').innerHTML = rows;
     document.getElementById('footer').innerHTML = footer;
 
     window.stockTable = $('#stocks').DataTable({
-        "order": [[ 5, "desc" ]],
+        "order": [[5, "desc"]],
         "paging": false,
         "searching": false
     });
+    if (highProfit) {
+        playSound();
+    }
 }
 
 function removeStock(index) {
@@ -92,6 +118,35 @@ const resetForm = function () {
     document.getElementById("price").value = '';
 };
 
+function isMuted() {
+    let toMute = localStorage.getItem('mute');
+    if(toMute == null) {
+        mute(false);
+        toMute = false;
+    }
+
+    return toMute == true;
+}
+
+function mute(mute) {
+    localStorage.setItem('mute', mute === true ? '1' : '0');
+    $('#mute').bootstrapToggle(`${mute ? 'on' : 'off'}`);
+}
+
+function trackMuteState() {
+    $('#mute').change(function() {
+        let current = document.getElementById("mute").checked;
+        localStorage.setItem('mute', current === true ? '1' : '0');
+    });
+}
+
+function playSound() {
+    if (!isMuted()) {
+        let audio = new Audio('audio/bell-10.flac');
+        audio.play();
+    }
+}
+
 /**
  * Stocks param format [{name: "AAPL"}, {name: "MCD"}]
  * Request in format ['AAPL', 'MCD']
@@ -111,8 +166,14 @@ async function getLocalStocksPrice(stocks) {
 }
 
 module.exports = {
+    playSound,
+    stopUpdates,
+    startUpdates,
     getLocalStocksPrice,
     showForm,
     addStock,
-    removeStock
+    removeStock,
+    isMuted,
+    mute,
+    trackMuteState
 };
