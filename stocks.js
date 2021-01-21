@@ -15,19 +15,26 @@ function stopUpdates() {
     }
     document.getElementById("stop-update").classList.add('d-none');
     document.getElementById("start-update").classList.remove('d-none');
+    localStorage.setItem('updates', '0');
 }
 
 function startUpdates() {
     window.updates = setInterval(function () {
         updateStocks();
-    }, 10000);
+    }, 60000);
     document.getElementById("start-update").classList.add('d-none');
     document.getElementById("stop-update").classList.remove('d-none');
+    localStorage.setItem('updates', '1');
+}
+
+function isUpdatesActivated() {
+    return localStorage.getItem('updates') === '1';
 }
 
 function updateStocks() {
     let stocks = getStocksFromStorage();
     setStocks(stocks);
+    isUpdatesActivated() ? startUpdates() : stopUpdates();
 }
 
 function getStocksFromStorage() {
@@ -44,12 +51,14 @@ async function drawStocks(stocks) {
     let currentStocksPrice = await getLocalStocksPrice(stocks);
     let rows = '';
     let profitSum = 0;
+    let originSum = 0;
     let highProfit = false;
     for (let i = 0; i < stocks.length; i++) {
         let profit = (stocks[i].count * currentStocksPrice[stocks[i].name] - stocks[i].count * stocks[i].price - 2);
-        if (profit > 2) {
+        if (profit > 10) {
             highProfit = true;
         }
+        originSum += stocks[i].count * stocks[i].price;
         profitSum += profit;
         rows += ` 
     <tr class="${profit > 0 ? 'table-success' : ''}">
@@ -63,7 +72,9 @@ async function drawStocks(stocks) {
     </tr>`
     }
     let footer = `<tr>
-      <th colspan="5">Sum of profit</th>
+      <th colspan="3">Origin sum</th>
+      <th>${originSum.toFixed(2)}</th>
+      <th>Sum of profit</th>
       <th>${profitSum.toFixed(2)}</th>
       <th></th>
     </tr>`;
