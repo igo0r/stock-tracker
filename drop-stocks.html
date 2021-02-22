@@ -14,14 +14,14 @@
             $(document).ready(function() {
                 stocksScript.mute(stocksScript.isMuted());
                 stocksScript.trackMuteState();
-                stocksScript.updateStocks();
+                stocksScript.updateDropStocks();
             });
         </script>
     </head>
     <body>
         <div class="container">
             <div style="padding: 1.5rem;">
-                <button type="button" id="start-update" onclick="stocksScript.startUpdates()" class="btn btn-primary">Start updates</button>
+                <button type="button" id="start-update" onclick="stocksScript.startDropUpdates()" class="btn btn-primary">Start updates</button>
                 <button type="button" id="stop-update" onclick="stocksScript.stopUpdates()" class="d-none btn btn-danger">Stop updates</button>
                 <label style="padding-left: 2rem;">Mute</label>
                 <input id="mute" type="checkbox" data-toggle="toggle">
@@ -29,25 +29,13 @@
             <div style="padding: 1.5rem;">
                 <button type="button" id="show-form" onclick="stocksScript.showForm()" class="btn btn-success">Add stock</button>
             </div>
-            <form onsubmit="stocksScript.addStock()">
+            <form onsubmit="stocksScript.addDropStock()">
                 <div id="form" class="d-none">
                     <div class="input-group input-group-sm mb-3 w-25">
                         <div class="input-group-prepend">
                             <span class="input-group-text">Name</span>
                         </div>
                         <input type="text" id="name" class="form-control" aria-label="Small" aria-describedby="inputGroup-sizing-sm" required>
-                    </div>
-                    <div class="input-group input-group-sm mb-3 w-25">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" id="inputGroup-sizing-sm">Count</span>
-                        </div>
-                        <input type="text" id="count" class="form-control" aria-label="Small" aria-describedby="inputGroup-sizing-sm" required>
-                    </div>
-                    <div class="input-group input-group-sm mb-3 w-25">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Price</span>
-                        </div>
-                        <input type="text" id="price" class="form-control" aria-label="Small" aria-describedby="inputGroup-sizing-sm" required>
                     </div>
                     <div class="input-group input-group-sm mb-3">
                         <button class="btn btn-success" type="submit">Save</button>
@@ -62,15 +50,14 @@
                     <tr>
                         <th scope="col">#</th>
                         <th scope="col">Name</th>
-                        <th scope="col">Count</th>
-                        <th scope="col">Origin price</th>
-                        <th scope="col">Current price</th>
-                        <th scope="col">Profit</th>
+                        <th scope="col">Close</th>
+                        <th scope="col">Open</th>
+                        <th scope="col">Current</th>
+                        <th scope="col">Change</th>
                         <th scope="col">Actions</th>
                     </tr>
                     </thead>
                     <tbody id="body"></tbody>
-                    <tfoot id="footer"></tfoot>
                 </table>
             </div>
         </div>

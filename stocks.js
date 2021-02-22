@@ -7,8 +7,6 @@
     ]
 );*/
 
-updateStocks();
-
 function stopUpdates() {
     if (window.updates) {
         clearInterval(window.updates);
@@ -19,8 +17,27 @@ function stopUpdates() {
 }
 
 function startUpdates() {
+    clearInterval(window.updates);
     window.updates = setInterval(function () {
-        updateStocks();
+        if (window.response == null) {
+            updateStocks();
+        } else {
+            console.log("waiting for request to finish");
+        }
+    }, 60000);
+    document.getElementById("start-update").classList.add('d-none');
+    document.getElementById("stop-update").classList.remove('d-none');
+    localStorage.setItem('updates', '1');
+}
+
+function startDropUpdates() {
+    clearInterval(window.updates);
+    window.updates = setInterval(function () {
+        if (window.response == null) {
+            updateDropStocks();
+        } else {
+            console.log("waiting for request to finish");
+        }
     }, 60000);
     document.getElementById("start-update").classList.add('d-none');
     document.getElementById("stop-update").classList.remove('d-none');
@@ -29,6 +46,23 @@ function startUpdates() {
 
 function isUpdatesActivated() {
     return localStorage.getItem('updates') === '1';
+}
+
+function updateDropStocks() {
+    let stocks = getDropStocksFromStorage();
+    setDropStocks(stocks);
+    isUpdatesActivated() ? startUpdates() : stopUpdates();
+}
+
+function getDropStocksFromStorage() {
+    let str = localStorage.getItem('dropStocks');
+    let res = JSON.parse(str);
+    return res == null ? [] : res ;
+}
+
+function setDropStocks(stocks) {
+    localStorage.setItem('dropStocks', JSON.stringify(stocks));
+    drawDropStocks(stocks);
 }
 
 function updateStocks() {
@@ -47,6 +81,51 @@ function setStocks(stocks) {
     drawStocks(stocks);
 }
 
+async function drawDropStocks(stocks) {
+    let currentStocksPrice = await getLocalStocksPrice(stocks);
+    let rows = '';
+    let highDrop = false;
+    for (let i = 0; i < stocks.length; i++) {
+        let currentStockInfo = currentStocksPrice[stocks[i].name];
+        let current = parseFloat(currentStockInfo.current.toString().replace(",", ''));
+        let close = parseFloat(currentStockInfo.close.toString().replace(",", ''));
+        let open = parseFloat(currentStockInfo.open.toString().replace(",", ''));
+
+        let closeDiff = (current / close - 1) * 100;
+        let openDiff = (current / open - 1) * 100;
+        let higherDiff = openDiff < closeDiff ? openDiff : closeDiff;
+
+        if (higherDiff < -5) {
+            highDrop = true;
+        }
+
+        rows += ` 
+    <tr class="${higherDiff < -5 ? 'table-danger' : ''}">
+      <th scope="row">${i + 1}</th>
+      <td>${stocks[i].name}</td>
+      <td>${close}</td>
+      <td>${open}</td>
+      <td>${current}</td>
+      <td >${higherDiff.toFixed(2)}</td>
+      <td><button type="button" onclick="stocksScript.removeDropStock(${i})" class="btn btn-dark">Remove</button></td>
+    </tr>`
+    }
+
+    if (window.stockTable) {
+        window.stockTable.destroy();
+    }
+    document.getElementById('body').innerHTML = rows;
+
+    window.stockTable = $('#stocks').DataTable({
+        "order": [[5, "asc"]],
+        "paging": false,
+        "searching": false
+    });
+    if (highDrop) {
+        playDropSound();
+    }
+}
+
 async function drawStocks(stocks) {
     let currentStocksPrice = await getLocalStocksPrice(stocks);
     let rows = '';
@@ -54,7 +133,7 @@ async function drawStocks(stocks) {
     let originSum = 0;
     let highProfit = false;
     for (let i = 0; i < stocks.length; i++) {
-        let profit = (stocks[i].count * currentStocksPrice[stocks[i].name] - stocks[i].count * stocks[i].price - 2);
+        let profit = (stocks[i].count * currentStocksPrice[stocks[i].name].current - stocks[i].count * stocks[i].price - 2);
         if (profit > 10) {
             highProfit = true;
         }
@@ -66,7 +145,7 @@ async function drawStocks(stocks) {
       <td>${stocks[i].name}</td>
       <td>${stocks[i].count}</td>
       <td>${stocks[i].price}</td>
-      <td>${currentStocksPrice[stocks[i].name]}</td>
+      <td>${currentStocksPrice[stocks[i].name].current}</td>
       <td >${profit.toFixed(2)}</td>
       <td><button type="button" onclick="stocksScript.removeStock(${i})" class="btn btn-dark">Remove</button></td>
     </tr>`
@@ -95,10 +174,25 @@ async function drawStocks(stocks) {
     }
 }
 
+function removeDropStock(index) {
+    let stocks = getStocksFromStorage();
+    stocks.splice(index, 1);
+    setStocks(stocks);
+}
+
 function removeStock(index) {
     let stocks = getStocksFromStorage();
     stocks.splice(index, 1);
     setStocks(stocks);
+}
+
+function addDropStock() {
+    let name = document.getElementById("name").value;
+
+    let stocks = getDropStocksFromStorage();
+    stocks.push({name: name});
+    setDropStocks(stocks);
+    hideForm();
 }
 
 function addStock() {
@@ -131,7 +225,7 @@ const resetForm = function () {
 
 function isMuted() {
     let toMute = localStorage.getItem('mute');
-    if(toMute == null) {
+    if (toMute == null) {
         mute(false);
         toMute = false;
     }
@@ -145,10 +239,17 @@ function mute(mute) {
 }
 
 function trackMuteState() {
-    $('#mute').change(function() {
+    $('#mute').change(function () {
         let current = document.getElementById("mute").checked;
         localStorage.setItem('mute', current === true ? '1' : '0');
     });
+}
+
+function playDropSound() {
+    if (!isMuted()) {
+        let audio = new Audio('audio/alert.mp3');
+        audio.play();
+    }
 }
 
 function playSound() {
@@ -170,10 +271,12 @@ async function getLocalStocksPrice(stocks) {
     let stocksToSend = stocks.map(stock => stock.name).filter((v, i, a) => a.indexOf(v) === i);
     const axios = require('axios');
     console.log(stocksToSend);
-    let response = await axios.post(`http://localhost:8080/stocks`, {stocks: stocksToSend});
-    console.log(response.data.data);
+    window.response = await axios.post(`http://localhost:8080/stocks`, {stocks: stocksToSend});
+    let data = window.response.data.data;
+    console.log(data);
+    window.response = null;
 
-    return response.data.data;
+    return data;
 }
 
 module.exports = {
@@ -186,5 +289,14 @@ module.exports = {
     removeStock,
     isMuted,
     mute,
-    trackMuteState
+    trackMuteState,
+    addDropStock,
+    getDropStocksFromStorage,
+    setDropStocks,
+    drawDropStocks,
+    removeDropStock,
+    playDropSound,
+    updateStocks,
+    updateDropStocks,
+    startDropUpdates
 };
