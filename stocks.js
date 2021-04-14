@@ -57,7 +57,7 @@ function updateDropStocks() {
 function getDropStocksFromStorage() {
     let str = localStorage.getItem('dropStocks');
     let res = JSON.parse(str);
-    return res == null ? [] : res ;
+    return res == null ? [] : res;
 }
 
 function setDropStocks(stocks) {
@@ -131,12 +131,10 @@ async function drawStocks(stocks) {
     let rows = '';
     let profitSum = 0;
     let originSum = 0;
-    let highProfit = false;
+    let highestProfit = 0;
     for (let i = 0; i < stocks.length; i++) {
         let profit = (stocks[i].count * currentStocksPrice[stocks[i].name].current - stocks[i].count * stocks[i].price - 2);
-        if (profit > 10) {
-            highProfit = true;
-        }
+        highestProfit = profit > highestProfit ? profit : highestProfit;
         originSum += stocks[i].count * stocks[i].price;
         profitSum += profit;
         rows += ` 
@@ -169,9 +167,7 @@ async function drawStocks(stocks) {
         "paging": false,
         "searching": false
     });
-    if (highProfit) {
-        playSound();
-    }
+    playSound(highestProfit);
 }
 
 function removeDropStock(index) {
@@ -252,10 +248,13 @@ function playDropSound() {
     }
 }
 
-function playSound() {
+function playSound(highestProfit) {
     if (!isMuted()) {
-        let audio = new Audio('audio/bell-10.flac');
-        audio.play();
+        let toPlay = highestProfit > 100 ? 'bell-100.wav' : highestProfit > 60 ? 'bell=60.wav' : highestProfit > 30 ? 'bell-30.wav' : highestProfit > 10 ? 'bell-10.flac' : false;
+        if (toPlay) {
+            let audio = new Audio(`audio/${toPlay}`);
+            audio.play();
+        }
     }
 }
 
