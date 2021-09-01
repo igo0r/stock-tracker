@@ -133,7 +133,7 @@ async function drawStocks(stocks) {
     let originSum = 0;
     let highestProfit = 0;
     for (let i = 0; i < stocks.length; i++) {
-        let profit = (stocks[i].count * currentStocksPrice[stocks[i].name].current - stocks[i].count * stocks[i].price - 2);
+        let profit = (stocks[i].count * currentStocksPrice[stocks[i].name].current.replace(/,/, '') - stocks[i].count * stocks[i].price - 2);
         highestProfit = profit > highestProfit ? profit : highestProfit;
         originSum += stocks[i].count * stocks[i].price;
         profitSum += profit;
@@ -143,7 +143,7 @@ async function drawStocks(stocks) {
       <td>${stocks[i].name}</td>
       <td>${stocks[i].count}</td>
       <td>${stocks[i].price}</td>
-      <td>${currentStocksPrice[stocks[i].name].current}</td>
+      <td>${currentStocksPrice[stocks[i].name].current.replace(/,/, '')}</td>
       <td >${profit.toFixed(2)}</td>
       <td><button type="button" onclick="stocksScript.removeStock(${i})" class="btn btn-dark">Remove</button></td>
     </tr>`
@@ -270,7 +270,7 @@ async function getLocalStocksPrice(stocks) {
     let stocksToSend = stocks.map(stock => stock.name).filter((v, i, a) => a.indexOf(v) === i);
     const axios = require('axios');
     console.log(stocksToSend);
-    window.response = await axios.post(`http://localhost:8080/stocks`, {stocks: stocksToSend});
+    window.response = await axios.post(`http://localhost:8080/stocks-marketwatch`, {stocks: stocksToSend});
     let data = window.response.data.data;
     console.log(data);
     window.response = null;
