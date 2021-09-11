@@ -144,6 +144,8 @@ async function drawStocks(stocks) {
       <td>${stocks[i].count}</td>
       <td>${stocks[i].price}</td>
       <td>${currentStocksPrice[stocks[i].name].current.replace(/,/, '')}</td>
+      <td>${stocks[i].goal ? stocks[i].goal : '?'}</td>
+      <td>${stocks[i].date ? parseInt((new Date() - new Date(stocks[i].date))/(24*60*60*1000)) : '0'}</td>
       <td >${profit.toFixed(2)}</td>
       <td><button type="button" onclick="stocksScript.removeStock(${i})" class="btn btn-dark">Remove</button></td>
     </tr>`
@@ -151,7 +153,7 @@ async function drawStocks(stocks) {
     let footer = `<tr>
       <th colspan="3">Origin sum</th>
       <th>${originSum.toFixed(2)}</th>
-      <th>Sum of profit</th>
+      <th colspan="3">Sum of profit</th>
       <th>${profitSum.toFixed(2)}</th>
       <th></th>
     </tr>`;
@@ -163,7 +165,7 @@ async function drawStocks(stocks) {
     document.getElementById('footer').innerHTML = footer;
 
     window.stockTable = $('#stocks').DataTable({
-        "order": [[5, "desc"]],
+        "order": [[7, "desc"]],
         "paging": false,
         "searching": false
     });
@@ -195,9 +197,10 @@ function addStock() {
     let name = document.getElementById("name").value;
     let count = document.getElementById("count").value;
     let price = document.getElementById("price").value;
+    let goal = document.getElementById("goal-price").value;
 
     let stocks = getStocksFromStorage();
-    stocks.push({name: name, count: count, price: price});
+    stocks.push({name: name, count: count, price: price, goal: goal, date: new Date()});
     setStocks(stocks);
     hideForm();
 }
@@ -217,6 +220,7 @@ const resetForm = function () {
     document.getElementById("name").value = '';
     document.getElementById("count").value = '';
     document.getElementById("price").value = '';
+    document.getElementById("goal-price").value = '';
 };
 
 function isMuted() {
