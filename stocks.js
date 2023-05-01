@@ -76,6 +76,16 @@ function getStocksFromStorage() {
     return JSON.parse(str);
 }
 
+function getStocksHistoryFromStorage() {
+    let str = localStorage.getItem('stocksHistory');
+    return JSON.parse(str) ?? [];
+}
+
+function setStocksHistory(stocks) {
+    localStorage.setItem('stocksHistory', JSON.stringify(stocks));
+    drawStocksHistory(stocks);
+}
+
 function setStocks(stocks) {
     localStorage.setItem('stocks', JSON.stringify(stocks));
     drawStocks(stocks);
@@ -172,15 +182,46 @@ async function drawStocks(stocks) {
     playSound(highestProfit);
 }
 
+async function drawStocksHistory() {
+    let stocks = await getStocksHistoryFromStorage();
+    let rows = '';
+    for (let i = 0; i < stocks.length; i++) {
+        let date = new Date(stocks[i].date);
+        rows += ` 
+    <tr>
+      <th scope="row">${i + 1}</th>
+      <td>${stocks[i].name}</td>
+      <td>${stocks[i].count}</td>
+      <td>${stocks[i].price}</td>
+      <td>${stocks[i].soldPrice}</td>
+      <td>${stocks[i].holdDays}</td>
+      <td>${date.toLocaleDateString('en-CA')}</td>
+      <td >${stocks[i].profit}</td>
+    </tr>`
+    }
+
+    if (window.stockHistoryTable) {
+        window.stockHistoryTable.destroy();
+    }
+    document.getElementById('body-history').innerHTML = rows;
+
+    window.stockHistoryTable = $('#stocks-history').DataTable({
+        //"order": [[7, "desc"]],
+        "paging": false,
+        "searching": false
+    });
+}
+
 function removeDropStock(index) {
     let stocks = getStocksFromStorage();
     stocks.splice(index, 1);
     setStocks(stocks);
 }
 
-function removeStock(index) {
+async function removeStock(index) {
     let stocks = getStocksFromStorage();
-    stocks.splice(index, 1);
+    await addStockToHistory(stocks.splice(index, 1)[0]);
+
     setStocks(stocks);
 }
 
@@ -191,6 +232,18 @@ function addDropStock() {
     stocks.push({name: name});
     setDropStocks(stocks);
     hideForm();
+}
+
+async function addStockToHistory(stock) {
+    console.log(stock);
+    let currentStocksPrice = await getLocalStocksPrice([stock]);
+    stock.soldPrice = currentStocksPrice[stock.name].current.replace(/,/, '');
+    stock.profit = (stock.count * stock.soldPrice - stock.count * stock.price - 2).toFixed(2);
+    stock.holdDays = parseInt((new Date() - new Date(stock.date))/(24*60*60*1000))
+    stock.date = new Date();
+    let stocks = getStocksHistoryFromStorage();
+    stocks.unshift(stock);
+    setStocksHistory(stocks);
 }
 
 function addStock() {
@@ -301,5 +354,9 @@ module.exports = {
     playDropSound,
     updateStocks,
     updateDropStocks,
-    startDropUpdates
+    startDropUpdates,
+    getStocksHistoryFromStorage,
+    setStocksHistory,
+    drawStocksHistory,
+    addStockToHistory
 };
